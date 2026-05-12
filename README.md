@@ -1,13 +1,14 @@
 # md2t - Markdown to Text Proxy
 
-企业微信 Webhook 代理中转站，自动将 Markdown 格式内容转换为 Text 消息格式。
+企业微信、飞书、钉钉 Webhook 代理中转站，自动将 Markdown 格式内容转换为各平台兼容的消息格式。
 
 项目 demo：https://your-domain.com/
 
 ## 功能特性
 
 - 📝 **自动识别 Markdown**：智能检测 Markdown 语法特征，自动转换
-- 🎨 **Text 消息**：将 Markdown 转换为企业微信Text消息格式
+- 🏢 **多平台支持**：支持企业微信、飞书、钉钉三大平台
+- 🎨 **格式转换**：自动转换为各平台兼容的消息格式（Text/Markdown/富文本）
 - 🔗 **点击查看详情**：转换后的消息附带链接，点击可查看完整 Markdown 渲染页面
 - 📊 **后台管理**：完整的日志记录、统计分析、数据管理
 - 🔒 **安全可靠**：数据加密存储，7天自动过期，后台权限验证
@@ -58,23 +59,53 @@ gunicorn -c gunicorn.conf.py wsgi:app
 
 ### Webhook 地址转换
 
-将原有的企业微信 Webhook 地址进行简单转换：
+将原有的 Webhook 地址进行简单转换：
 
-| 类型 | 地址格式 |
-|------|----------|
-| 原地址 | `https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx` |
-| 代理地址 | `https://你的域名或IP:5000/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx` |
+| 平台 | 原地址 | 代理地址 |
+|------|--------|----------|
+| 企业微信 | `https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx` | `https://你的域名/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx` |
+| 飞书 | `https://open.feishu.cn/open-apis/bot/v2/hook/xxx` | `https://你的域名/https://open.feishu.cn/open-apis/bot/v2/hook/xxx` |
+| 钉钉 | `https://oapi.dingtalk.com/robot/send?access_token=xxx` | `https://你的域名/https://oapi.dingtalk.com/robot/send?access_token=xxx` |
 
 ### 发送消息示例
 
+#### 企业微信
+
 ```bash
 curl -X POST \
-  'https://你的域名或IP:5000/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx' \
+  'https://你的域名/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx' \
   -H 'Content-Type: application/json' \
   -d '{
     "msgtype": "text",
     "text": {
         "content": "# 系统告警\n\n**服务**: API Gateway\n**状态**: ❌ 异常\n**时间**: 2024-01-15 10:30:00"
+    }
+}'
+```
+
+#### 飞书
+
+```bash
+curl -X POST \
+  'https://你的域名/https://open.feishu.cn/open-apis/bot/v2/hook/xxx' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "msgtype": "text",
+    "content": "# 系统告警\n\n**服务**: API Gateway\n**状态**: ❌ 异常\n**时间**: 2024-01-15 10:30:00"
+  }'
+```
+
+#### 钉钉
+
+```bash
+curl -X POST \
+  'https://你的域名/https://oapi.dingtalk.com/robot/send?access_token=xxx' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "msgtype": "markdown",
+    "markdown": {
+        "title": "系统告警",
+        "text": "## 系统告警\n\n**服务**: API Gateway\n**状态**: ❌ 异常\n**时间**: 2024-01-15 10:30:00"
     }
 }'
 ```
