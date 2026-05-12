@@ -2,7 +2,7 @@
 
 企业微信 Webhook 代理中转站，自动将 Markdown 格式内容转换为 Text 消息格式。
 
-项目demo：https://md2t.misrivers.cn/
+项目 demo：https://your-domain.com/
 
 ## 功能特性
 
@@ -37,7 +37,8 @@ cp .env.example .env
 export SECRET_KEY=your-secret-key-here
 export ADMIN_USERNAME=admin
 export ADMIN_PASSWORD_HASH=admin123
-export BASE_URL="http://127.0.0.1:5000"
+export DOMAIN=https://your-domain.com
+export BASE_URL=https://your-domain.com
 ```
 
 ### 3. 启动服务
@@ -118,7 +119,7 @@ CMD ["gunicorn", "-c", "gunicorn.conf.py", "wsgi:app"]
 ```nginx
 server {
     listen 80;
-    server_name md2t.misrivers.cn;
+    server_name your-domain.com;
     
     location / {
         proxy_pass http://127.0.0.1:5000;
@@ -167,6 +168,7 @@ md2t/
 ├── wsgi.py             # WSGI 入口
 ├── requirements.txt    # 依赖列表
 ├── gunicorn.conf.py    # Gunicorn 配置
+├── .env                # 环境变量配置（需从 .env.example 复制）
 ├── .env.example        # 环境变量示例
 ├── templates/          # HTML 模板
 │   ├── base.html

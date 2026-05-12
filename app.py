@@ -29,6 +29,7 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ADMIN_USERNAME = os.environ.get('ADMIN_USERNAME') or 'admin'
     ADMIN_PASSWORD_HASH = os.environ.get('ADMIN_PASSWORD_HASH') or 'scrypt:32768:8:1$aMwbN4Eo7R13BKFJ$8b7e0dd3bfa4ac758a1ab2a5fd20d3c2415089adad6ec7f4d9edf72b12a6c89e1d20979eed01419a04418ce4af380ed4673153234977ecc0601f1c358e9ecdd1'
+    DOMAIN = os.environ.get('DOMAIN') or 'http://127.0.0.1:5000'
     BASE_URL = os.environ.get('BASE_URL') or 'http://127.0.0.1:5000'
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
@@ -324,7 +325,7 @@ def require_admin(f):
 @app.route('/')
 def index():
     """首页"""
-    return render_template('index.html')
+    return render_template('index.html', domain=app.config['DOMAIN'])
 
 
 def get_admin_password_hash():

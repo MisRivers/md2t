@@ -11,6 +11,7 @@ services:
       - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
+      - DOMAIN=${DOMAIN:-http://localhost}
       - BASE_URL=${BASE_URL:-http://localhost:5000}
       - DATABASE_URL=sqlite:///data/md2t.db
     volumes:
