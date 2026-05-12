@@ -1,11 +1,13 @@
-# md2t - Markdown to TextCard Proxy
+# md2t - Markdown to Text Proxy
 
-企业微信 Webhook 代理中转站，自动将 Markdown 格式内容转换为 TextCard 或 Text 消息格式。
+企业微信 Webhook 代理中转站，自动将 Markdown 格式内容转换为 Text 消息格式。
+
+项目demo：https://md2t.misrivers.cn/
 
 ## 功能特性
 
 - 📝 **自动识别 Markdown**：智能检测 Markdown 语法特征，自动转换
-- 🎨 **TextCard 消息**：将 Markdown 转换为企业微信卡片消息格式
+- 🎨 **Text 消息**：将 Markdown 转换为企业微信Text消息格式
 - 🔗 **点击查看详情**：转换后的消息附带链接，点击可查看完整 Markdown 渲染页面
 - 📊 **后台管理**：完整的日志记录、统计分析、数据管理
 - 🔒 **安全可靠**：数据加密存储，7天自动过期，后台权限验证
@@ -75,7 +77,7 @@ curl -X POST \
 
 ### 转换逻辑
 
-1. **检测到 Markdown 格式** → 自动转换为 **TextCard** 消息
+1. **检测到 Markdown 格式** → 自动转换为 **Text** 消息
 2. **内容过长**（>500字符）→ 转换为 **Text** 消息附带链接
 3. **非 Markdown 格式** → **原文转发**
 
@@ -133,7 +135,7 @@ server {
 ```ini
 # /etc/systemd/system/md2t.service
 [Unit]
-Description=md2t Markdown to TextCard Proxy
+Description=md2t Markdown to Text Proxy
 After=network.target
 
 [Service]
