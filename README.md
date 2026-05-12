@@ -2,7 +2,7 @@
 
 企业微信、飞书、钉钉 Webhook 代理中转站，自动将 Markdown 格式内容转换为各平台兼容的消息格式。
 
-项目 demo：https://your-domain.com/
+项目 demo：https://md2t.misrivers.cn/
 
 ## 功能特性
 
@@ -16,9 +16,12 @@
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1. 克隆拉取代码并安装依赖
 
 ```bash
+# 克隆拉取代码
+git clone https://github.com/MisRivers/md2t.git && cd md2t
+
 # 创建虚拟环境
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
@@ -73,7 +76,7 @@ gunicorn -c gunicorn.conf.py wsgi:app
 
 ```bash
 curl -X POST \
-  'https://你的域名/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx' \
+  'https://your-domain.com/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx' \
   -H 'Content-Type: application/json' \
   -d '{
     "msgtype": "text",
@@ -87,7 +90,7 @@ curl -X POST \
 
 ```bash
 curl -X POST \
-  'https://你的域名/https://open.feishu.cn/open-apis/bot/v2/hook/xxx' \
+  'https://your-domain.com/https://open.feishu.cn/open-apis/bot/v2/hook/xxx' \
   -H 'Content-Type: application/json' \
   -d '{
     "msgtype": "text",
@@ -99,7 +102,7 @@ curl -X POST \
 
 ```bash
 curl -X POST \
-  'https://你的域名/https://oapi.dingtalk.com/robot/send?access_token=xxx' \
+  'https://your-domain.com/https://oapi.dingtalk.com/robot/send?access_token=xxx' \
   -H 'Content-Type: application/json' \
   -d '{
     "msgtype": "markdown",
@@ -113,7 +116,7 @@ curl -X POST \
 ### 转换逻辑
 
 1. **检测到 Markdown 格式** → 自动转换为 **Text** 消息
-2. **内容过长**（>500字符）→ 转换为 **Text** 消息附带链接
+2. **内容过长**→ 转换为 **Text** 消息附带链接
 3. **非 Markdown 格式** → **原文转发**
 
 ## 后台管理
