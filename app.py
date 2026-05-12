@@ -32,6 +32,9 @@ class Config:
     DOMAIN = os.environ.get('DOMAIN') or 'http://127.0.0.1:5000'
     BASE_URL = os.environ.get('BASE_URL') or 'http://127.0.0.1:5000'
     MAX_CONTENT_LENGTH = 10 * 1024 * 1024  # 10MB
+    DATA_RETENTION_DAYS = int(os.environ.get('DATA_RETENTION_DAYS') or 7)
+    MAX_LINES = int(os.environ.get('MAX_LINES') or 20)
+    MAX_TEXT_LENGTH = int(os.environ.get('MAX_TEXT_LENGTH') or 4096)
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
     # 企业微信限制
     WECHAT_Text_TITLE_MAX = 128
@@ -92,7 +95,7 @@ class ProxyLog(db.Model):
     client_ip = db.Column(db.String(45))
     user_agent = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    expires_at = db.Column(db.DateTime, default=lambda: datetime.utcnow() + timedelta(days=7))
+    expires_at = db.Column(db.DateTime)
     view_count = db.Column(db.Integer, default=0)
     
     def is_expired(self):
@@ -236,7 +239,7 @@ def convert_markdown_to_markdown(md_content, view_url):
 def convert_markdown_to_text(md_content, view_url):
     """
     将Markdown转换为企业微信Text格式（带链接）
-    文本太长时只显示前50行
+    文本太长时只显示前 MAX_LINES 行
     """
     # 提取纯文本
     lines = md_content.split('\n')
@@ -257,16 +260,16 @@ def convert_markdown_to_text(md_content, view_url):
         if clean.strip():
             text_lines.append(clean)
     
-    # 超过50行时截断
+    # 超过 MAX_LINES 时截断
     is_truncated = False
-    if len(text_lines) > 20:
-        text_lines = text_lines[:20]
+    if len(text_lines) > Config.MAX_LINES:
+        text_lines = text_lines[:Config.MAX_LINES]
         is_truncated = True
     
     content = '\n'.join(text_lines)
     
     # 字符长度限制
-    max_len = Config.WECHAT_TEXT_CONTENT_MAX - len(view_url) - 60
+    max_len = Config.MAX_TEXT_LENGTH - len(view_url) - 60
     if len(content) > max_len:
         content = content[:max_len - 3] + '...'
         is_truncated = True
@@ -602,7 +605,8 @@ def proxy_webhook(webhook_path):
         request_id=request_id,
         webhook_url=webhook_url,
         client_ip=request.headers.get('X-Forwarded-For', request.remote_addr),
-        user_agent=request.headers.get('User-Agent', '')
+        user_agent=request.headers.get('User-Agent', ''),
+        expires_at=datetime.utcnow() + timedelta(days=app.config['DATA_RETENTION_DAYS'])
     )
     
     try:

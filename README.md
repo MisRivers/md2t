@@ -39,6 +39,9 @@ export ADMIN_USERNAME=admin
 export ADMIN_PASSWORD_HASH=admin123
 export DOMAIN=https://your-domain.com
 export BASE_URL=https://your-domain.com
+export DATA_RETENTION_DAYS=7
+export MAX_LINES=20
+export MAX_TEXT_LENGTH=4096
 ```
 
 ### 3. 启动服务
@@ -178,6 +181,20 @@ md2t/
 │   └── error.html
 └── README.md
 ```
+
+## 配置说明
+
+| 配置项 | 说明 | 默认值 |
+|--------|------|--------|
+| SECRET_KEY | 应用密钥（必填） | 随机生成 |
+| ADMIN_USERNAME | 管理员用户名 | admin |
+| ADMIN_PASSWORD_HASH | 管理员密码哈希 | （默认密码 admin123） |
+| DOMAIN | 站点域名 | http://127.0.0.1:5000 |
+| BASE_URL | 站点基础 URL | http://127.0.0.1:5000 |
+| DATABASE_URL | 数据库连接字符串 | sqlite:///md2t.db |
+| DATA_RETENTION_DAYS | Markdown展示页面有效期（天） | 7 |
+| MAX_LINES | 超过多少行时截断内容 | 20 |
+| MAX_TEXT_LENGTH | 文本最大长度（字节） | 4096 |
 
 ## 安全建议
 

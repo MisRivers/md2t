@@ -13,6 +13,9 @@ services:
       - ADMIN_PASSWORD_HASH=${ADMIN_PASSWORD_HASH}
       - DOMAIN=${DOMAIN:-http://localhost}
       - BASE_URL=${BASE_URL:-http://localhost:5000}
+      - DATA_RETENTION_DAYS=${DATA_RETENTION_DAYS:-7}
+      - MAX_LINES=${MAX_LINES:-20}
+      - MAX_TEXT_LENGTH=${MAX_TEXT_LENGTH:-4096}
       - DATABASE_URL=sqlite:///data/md2t.db
     volumes:
       - ./data:/app/data
