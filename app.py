@@ -14,6 +14,7 @@ import html
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs
 
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template, abort, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
@@ -21,6 +22,9 @@ from flask_limiter.util import get_remote_address
 import requests
 import markdown
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# 加载 .env 文件
+load_dotenv()
 
 # 配置
 class Config:
