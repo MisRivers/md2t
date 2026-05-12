@@ -14,6 +14,7 @@ import html
 from datetime import datetime, timedelta
 from urllib.parse import urlparse, parse_qs
 
+from dotenv import load_dotenv
 from flask import Flask, request, jsonify, render_template, abort, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
@@ -21,6 +22,9 @@ from flask_limiter.util import get_remote_address
 import requests
 import markdown
 from werkzeug.security import generate_password_hash, check_password_hash
+
+# 加载 .env 文件
+load_dotenv()
 
 # 配置
 class Config:
@@ -290,9 +294,114 @@ def convert_markdown_to_text(md_content, view_url):
     }
 
 
+def convert_to_feishu_message(md_content, view_url):
+    """
+    将Markdown转换为飞书富文本消息
+    飞书支持富文本消息格式
+    """
+    lines = md_content.split('\n')
+    feishu_content = []
+    
+    for line in lines:
+        clean = re.sub(r'\*\*(.+?)\*\*', r'\1', line)
+        clean = re.sub(r'\*(.+?)\*', r'\1', clean)
+        clean = re.sub(r'`(.+?)`', r'\1', clean)
+        clean = re.sub(r'\[(.+?)\]\(.+?\)', r'\1', clean)
+        clean = re.sub(r'!\[.*?\]\(.+?\)', '[图片]', clean)
+        clean = re.sub(r'^#+\s*', '', clean)
+        clean = re.sub(r'^\s*[-*+]\s*', '• ', clean)
+        clean = re.sub(r'^\s*\d+\.\s*', '', clean)
+        clean = re.sub(r'^>\s*', '', clean)
+        
+        if clean.strip():
+            feishu_content.append({
+                "tag": "text",
+                "text": clean
+            })
+            feishu_content.append({"tag": "text", "text": "\n"})
+    
+    is_truncated = False
+    if len(feishu_content) > Config.MAX_LINES * 2:
+        feishu_content = feishu_content[:Config.MAX_LINES * 2]
+        is_truncated = True
+    
+    if is_truncated:
+        feishu_content.append({"tag": "text", "text": "\n\n...（内容已截断）\n"})
+    
+    feishu_content.append({"tag": "a", "text": "📄 查看完整内容", "href": view_url})
+    
+    return {
+        "msg_type": "post",
+        "content": {
+            "post": {
+                "zh_cn": {
+                    "title": extract_title_from_markdown(md_content),
+                    "content": [feishu_content]
+                }
+            }
+        }
+    }
+
+
+def convert_to_dingtalk_message(md_content, view_url):
+    """
+    将Markdown转换为钉钉Markdown消息
+    钉钉支持Markdown格式
+    """
+    content_lines = []
+    title_found = False
+    
+    lines = md_content.split('\n')
+    for i, line in enumerate(lines):
+        if not title_found:
+            match = re.match(r'^#\s+(.+)$', line.strip())
+            if match:
+                content_lines.append(f"### {match.group(1).strip()}")
+                title_found = True
+                continue
+            match = re.match(r'^##\s+(.+)$', line.strip())
+            if match:
+                content_lines.append(f"#### {match.group(1).strip()}")
+                continue
+        else:
+            content_lines.append(line)
+    
+    if not title_found:
+        content_lines = lines
+    
+    content = '\n'.join(content_lines)
+    
+    is_truncated = False
+    content_lines_out = content.split('\n')
+    if len(content_lines_out) > Config.MAX_LINES:
+        content_lines_out = content_lines_out[:Config.MAX_LINES]
+        is_truncated = True
+    
+    content = '\n'.join(content_lines_out)
+    
+    max_len = Config.MAX_TEXT_LENGTH - len(view_url) - 100
+    if len(content) > max_len:
+        content = content[:max_len - 3] + '...'
+        is_truncated = True
+    
+    if is_truncated:
+        content += f"\n\n> 📄 [查看完整内容]({view_url})"
+    else:
+        content += f"\n\n> 📄 [查看完整内容]({view_url})"
+    
+    return {
+        "msgtype": "markdown",
+        "markdown": {
+            "title": extract_title_from_markdown(md_content),
+            "text": content
+        }
+    }
+
+
 def parse_webhook_url_from_path(path):
     """
-    从请求路径中解析企业微信Webhook URL
+    从请求路径中解析Webhook URL
+    支持: 企业微信、飞书、钉钉
     格式: /https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx
     """
     # 去掉可能的开头 /
@@ -301,11 +410,26 @@ def parse_webhook_url_from_path(path):
     
     # 检查是否以 https:// 开头
     if path.startswith('https://'):
-        # 验证是否是有效的企业微信Webhook URL
+        # 验证是否是有效的Webhook URL
         if re.match(r'^https://qyapi\.weixin\.qq\.com/cgi-bin/webhook/send', path):
-            return path
+            return ('wechat', path)
+        elif re.match(r'^https://open\.feishu\.cn/open-apis/bot/v2/hook/', path):
+            return ('feishu', path)
+        elif re.match(r'^https://oapi\.dingtalk\.com/robot/send', path):
+            return ('dingtalk', path)
     
-    return None
+    return None, None
+
+
+def get_platform_from_url(webhook_url):
+    """从Webhook URL识别平台"""
+    if re.match(r'^https://qyapi\.weixin\.qq\.com/cgi-bin/webhook/send', webhook_url):
+        return 'wechat'
+    elif re.match(r'^https://open\.feishu\.cn/open-apis/bot/v2/hook/', webhook_url):
+        return 'feishu'
+    elif re.match(r'^https://oapi\.dingtalk\.com/robot/send', webhook_url):
+        return 'dingtalk'
+    return 'unknown'
 
 
 def require_admin(f):
