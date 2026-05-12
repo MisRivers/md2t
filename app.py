@@ -125,10 +125,17 @@ class ProxyLog(db.Model):
         if not self.webhook_url:
             return ''
         try:
-            parsed = urlparse(self.webhook_url)
-            if 'key=' in self.webhook_url:
-                return re.sub(r'key=[^&]+', 'key=***', self.webhook_url)
-            return self.webhook_url[:50] + '...' if len(self.webhook_url) > 50 else self.webhook_url
+            masked_url = self.webhook_url
+            # 企业微信 key
+            masked_url = re.sub(r'key=[^&]+', 'key=***', masked_url)
+            # 钉钉 access_token
+            masked_url = re.sub(r'access_token=[^&]+', 'access_token=***', masked_url)
+            # 飞书 hook 后的 token
+            masked_url = re.sub(r'(open\.feishu\.cn/open-apis/bot/v2/hook/)[^/?&]+', r'\1***', masked_url)
+            # 如果太长，截取前面部分
+            if len(masked_url) > 80:
+                return masked_url[:80] + '...'
+            return masked_url
         except:
             return '***'
 
@@ -579,24 +586,28 @@ def admin_dashboard():
 @require_admin
 def admin_logs():
     """日志列表"""
-    page = request.args.get('page', 1, type=int)
-    per_page = 20
-    
-    query = ProxyLog.query.order_by(ProxyLog.created_at.desc())
-    
-    # 筛选
-    content_type = request.args.get('content_type')
-    if content_type:
-        query = query.filter_by(content_type=content_type)
-    
-    is_markdown = request.args.get('is_markdown')
-    if is_markdown is not None:
-        query = query.filter_by(is_markdown=(is_markdown == '1'))
-    
-    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
-    logs = pagination.items
-    
-    return render_template('admin_logs.html', logs=logs, pagination=pagination)
+    try:
+        page = request.args.get('page', 1, type=int)
+        per_page = 20
+        
+        query = ProxyLog.query.order_by(ProxyLog.created_at.desc())
+        
+        # 筛选
+        content_type = request.args.get('content_type')
+        if content_type:
+            query = query.filter_by(content_type=content_type)
+        
+        is_markdown = request.args.get('is_markdown')
+        if is_markdown is not None:
+            query = query.filter_by(is_markdown=(is_markdown == '1'))
+        
+        pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+        logs = pagination.items
+        
+        return render_template('admin_logs.html', logs=logs, pagination=pagination)
+    except Exception as e:
+        flash(f'加载日志列表出错: {str(e)}', 'error')
+        return redirect(url_for('admin_dashboard'))
 
 
 @app.route('/admin/logs/<request_id>')
@@ -703,12 +714,10 @@ def view_markdown(request_id):
 @limiter.limit("30 per minute")
 def proxy_webhook(webhook_path):
     """
-    代理企业微信Webhook请求
+    代理企业微信、飞书、钉钉Webhook请求
     支持格式: /https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx
     """
     # 构建Webhook URL
-    # webhook_path 是 Flask <path:> 捕获的路径部分，如 https://qyapi.weixin.qq.com/cgi-bin/webhook/send
-    # request.query_string 包含原始请求的查询参数（如 key=xxx），需要拼接到 webhook URL
     webhook_url = webhook_path
     if request.query_string:
         query_str = request.query_string.decode('utf-8')
@@ -717,8 +726,9 @@ def proxy_webhook(webhook_path):
         else:
             webhook_url += '?' + query_str
     
-    # 验证是否是有效的企业微信Webhook URL
-    if not re.match(r'^https://qyapi\.weixin\.qq\.com/cgi-bin/webhook/send', webhook_url):
+    # 验证是否是有效的Webhook URL
+    platform = get_platform_from_url(webhook_url)
+    if platform == 'unknown':
         return jsonify({'errcode': -1, 'errmsg': 'Invalid webhook URL format'}), 400
     
     # 生成请求ID
@@ -742,34 +752,57 @@ def proxy_webhook(webhook_path):
             data = request.get_json()
             log.content_type = 'json'
             
-            # 获取原始消息类型
-            original_msgtype = data.get('msgtype', '')
-            
-            # 提取原始内容
+            # 根据平台提取原始内容
             original_content = None
-            if 'text' in data and 'content' in data['text']:
-                original_content = data['text']['content']
-                log.content_type = 'text'
-            elif 'markdown' in data and 'content' in data['markdown']:
-                original_content = data['markdown']['content']
-                log.content_type = 'markdown'
-            elif 'markdown_v2' in data and 'content' in data['markdown_v2']:
-                original_content = data['markdown_v2']['content']
-                log.content_type = 'markdown_v2'
+            original_msgtype = ''
+            
+            if platform == 'wechat':
+                original_msgtype = data.get('msgtype', '')
+                if 'text' in data and 'content' in data['text']:
+                    original_content = data['text']['content']
+                    log.content_type = 'text'
+                elif 'markdown' in data and 'content' in data['markdown']:
+                    original_content = data['markdown']['content']
+                    log.content_type = 'markdown'
+                elif 'markdown_v2' in data and 'content' in data['markdown_v2']:
+                    original_content = data['markdown_v2']['content']
+                    log.content_type = 'markdown_v2'
+            elif platform == 'feishu':
+                original_msgtype = data.get('msg_type', '')
+                if 'content' in data and isinstance(data['content'], dict):
+                    if 'text' in data['content']:
+                        original_content = data['content']['text']
+                        log.content_type = 'text'
+            elif platform == 'dingtalk':
+                original_msgtype = data.get('msgtype', '')
+                if 'text' in data and 'content' in data['text']:
+                    original_content = data['text']['content']
+                    log.content_type = 'text'
+                elif 'markdown' in data and 'text' in data['markdown']:
+                    original_content = data['markdown']['text']
+                    log.content_type = 'markdown'
             
             log.original_content = original_content
             
             # 判断是否需要转换
-            # msgtype 是 markdown 或 markdown_v2 → 全部转为 text
-            # msgtype 不是 markdown 但内容是 Markdown → 也转为 text（原文转发也行，但统一处理）
-            is_md_msgtype = original_msgtype in ('markdown', 'markdown_v2')
+            is_md_msgtype = False
+            if platform == 'wechat':
+                is_md_msgtype = original_msgtype in ('markdown', 'markdown_v2')
+            elif platform == 'dingtalk':
+                is_md_msgtype = original_msgtype in ('markdown',)
             is_md_content = original_content and is_markdown_content(original_content)
             
             if (is_md_msgtype or is_md_content) and original_content:
-                # 统一转为 text 格式
                 log.is_markdown = is_md_content
                 view_url = f"{app.config['BASE_URL']}/view/{request_id}"
-                converted = convert_markdown_to_text(original_content, view_url)
+                
+                if platform == 'wechat':
+                    converted = convert_markdown_to_text(original_content, view_url)
+                elif platform == 'feishu':
+                    converted = convert_to_feishu_message(original_content, view_url)
+                elif platform == 'dingtalk':
+                    converted = convert_to_dingtalk_message(original_content, view_url)
+                
                 log.converted_content = json.dumps(converted, ensure_ascii=False)
                 data = converted
         else:
@@ -781,7 +814,7 @@ def proxy_webhook(webhook_path):
         db.session.add(log)
         db.session.commit()
         
-        # 转发到企业微信
+        # 转发到对应平台
         headers = {
             'Content-Type': 'application/json; charset=utf-8'
         }
@@ -796,7 +829,7 @@ def proxy_webhook(webhook_path):
         log.response_body = response.text[:2000]  # 限制长度
         db.session.commit()
         
-        # 返回企业微信的响应
+        # 返回响应
         return response.text, response.status_code, {'Content-Type': 'application/json'}
         
     except requests.exceptions.RequestException as e:
