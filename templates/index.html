@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container text-center">
+        <h1 class="display-4 fw-bold mb-3">
+            <i class="bi bi-arrow-left-right me-3"></i>md2t
+        </h1>
+        <p class="lead mb-4">Markdown → Text 代理中转站</p>
+        <p class="mb-4 opacity-75">自动识别 Markdown 格式，转换为企业微信 Text 消息</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a href="#docs" class="btn btn-light btn-lg">
+                <i class="bi bi-book me-2"></i>使用文档
+            </a>
+            <a href="{{ url_for('admin_login') }}" class="btn btn-outline-light btn-lg">
+                <i class="bi bi-shield-lock me-2"></i>管理后台
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- 功能特点 -->
+    <div class="row mb-5">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 p-4 text-center">
+                <div class="feature-icon mx-auto">
+                    <i class="bi bi-filetype-md"></i>
+                </div>
+                <h5 class="card-title">自动识别</h5>
+                <p class="card-text text-muted">
+                    智能识别 Markdown 格式内容，自动转换为 Text 消息格式
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 p-4 text-center">
+                <div class="feature-icon mx-auto">
+                    <i class="bi bi-link-45deg"></i>
+                </div>
+                <h5 class="card-title">点击跳转</h5>
+                <p class="card-text text-muted">
+                    转换后的消息附带查看链接，点击可查看完整的 Markdown 渲染页面
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 p-4 text-center">
+                <div class="feature-icon mx-auto">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <h5 class="card-title">安全可靠</h5>
+                <p class="card-text text-muted">
+                    完整的后台管理系统，数据加密存储，7天自动过期清理
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 使用文档 -->
+    <div class="row" id="docs">
+        <div class="col-lg-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0"><i class="bi bi-book me-2"></i>使用文档</h4>
+                </div>
+                <div class="card-body">
+                    <h5 class="mt-3">1. 基本用法</h5>
+                    <p>将原有的企业微信 Webhook 地址进行简单转换即可使用：</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>类型</th>
+                                    <th>地址格式</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>原地址</strong></td>
+                                    <td><code>https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx</code></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>代理地址</strong></td>
+                                    <td><code>https://md2t.misrivers.cn/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx</code></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <h5 class="mt-4">2. 发送消息示例</h5>
+                    <p>使用方式与企业微信 Webhook 完全一致：</p>
+                    
+                    <div class="bg-light p-3 rounded">
+                        <pre class="mb-0"><code class="language-bash">curl -X POST \
+  'https://md2t.misrivers.cn/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "msgtype": "text",
+    "text": {
+        "content": "# 系统告警\\n\\n**服务**: API Gateway\\n**状态**: ❌ 异常\\n**时间**: 2024-01-15 10:30:00"
+    }
+}'</code></pre>
+                    </div>
+
+                    <h5 class="mt-4">3. 转换逻辑</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            检测到 Markdown 格式 → 自动转换为 <strong>Text</strong> 消息
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            内容过长时 → 转换为 <strong>Text</strong> 消息附带链接
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            非 Markdown 格式 → <strong>原文转发</strong>
+                        </li>
+                    </ul>
+
+                    <h5 class="mt-4">4. Markdown 支持特性</h5>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check2 text-success me-2"></i>标题 (H1-H6)</li>
+                                <li><i class="bi bi-check2 text-success me-2"></i>粗体 / 斜体</li>
+                                <li><i class="bi bi-check2 text-success me-2"></i>行内代码 / 代码块</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="list-unstyled">
+                                <li><i class="bi bi-check2 text-success me-2"></i>列表 (有序/无序)</li>
+                                <li><i class="bi bi-check2 text-success me-2"></i>表格</li>
+                                <li><i class="bi bi-check2 text-success me-2"></i>引用块</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <h5 class="mt-4">5. 数据安全</h5>
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <i class="bi bi-shield-lock text-primary me-2"></i>
+                            所有请求数据加密存储
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-clock-history text-primary me-2"></i>
+                            Markdown 查看链接有效期 <strong>7天</strong>
+                        </li>
+                        <li class="list-group-item">
+                            <i class="bi bi-person-lock text-primary me-2"></i>
+                            后台管理需要身份验证
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

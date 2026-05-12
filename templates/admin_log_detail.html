@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}日志详情 - {{ log.request_id[:8] }} - md2t{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">
+            <i class="bi bi-file-earmark-text me-2"></i>日志详情
+            <small class="text-muted fs-5">#{{ log.request_id[:8] }}</small>
+        </h3>
+        <div>
+            <a href="{{ url_for('admin_logs') }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>返回列表
+            </a>
+            <form method="POST" action="{{ url_for('admin_log_delete', request_id=log.request_id) }}" 
+                  class="d-inline" onsubmit="return confirm('确定要删除这条记录吗？');">
+                <button type="submit" class="btn btn-outline-danger btn-sm ms-2">
+                    <i class="bi bi-trash me-1"></i>删除
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 基本信息 -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>基本信息</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table table-borderless table-sm">
+                        <tr>
+                            <td class="text-muted">请求ID</td>
+                            <td class="text-break"><code>{{ log.request_id }}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">内容类型</td>
+                            <td>
+                                {% if log.is_markdown %}
+                                <span class="badge badge-md">Markdown</span>
+                                {% else %}
+                                <span class="badge badge-text">{{ log.content_type | upper }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">响应状态</td>
+                            <td>
+                                {% if log.response_status == 200 %}
+                                    <span class="badge bg-success">{{ log.response_status }} OK</span>
+                                {% elif log.response_status %}
+                                    <span class="badge bg-danger">{{ log.response_status }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">N/A</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">客户端IP</td>
+                            <td><code>{{ log.client_ip or 'N/A' }}</code></td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">创建时间</td>
+                            <td>{{ log.created_at | localtime }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">过期时间</td>
+                            <td>
+                                {% if log.is_expired() %}
+                                    <span class="badge bg-secondary">已过期</span>
+                                {% else %}
+                                    <span class="badge bg-success">{{ log.expires_at | localtime }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="text-muted">查看次数</td>
+                            <td>{{ log.view_count }} 次</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Webhook信息 -->
+            <div class="card mt-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-link-45deg me-2"></i>Webhook</h5>
+                </div>
+                <div class="card-body">
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-sm" 
+                               value="{{ log._mask_webhook_url() }}" readonly>
+                        <button class="btn btn-outline-secondary btn-sm" type="button" 
+                                onclick="navigator.clipboard.writeText('{{ log.webhook_url }}'); alert('已复制');">
+                            <i class="bi bi-clipboard"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 查看链接 -->
+            {% if log.is_markdown and log.original_content %}
+            <div class="card mt-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-eye me-2"></i>查看链接</h5>
+                </div>
+                <div class="card-body">
+                    {% if not log.is_expired() %}
+                    <div class="input-group mb-2">
+                        <input type="text" class="form-control form-control-sm" 
+                               value="{{ url_for('view_markdown', request_id=log.request_id, _external=True) }}" readonly>
+                        <a href="{{ url_for('view_markdown', request_id=log.request_id) }}" 
+                           class="btn btn-primary btn-sm" target="_blank">
+                            <i class="bi bi-box-arrow-up-right"></i>
+                        </a>
+                    </div>
+                    <small class="text-muted">有效期至 {{ log.expires_at | localtime }}</small>
+                    {% else %}
+                    <div class="alert alert-secondary mb-0">
+                        <i class="bi bi-clock-history me-2"></i>该链接已过期
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- 内容详情 -->
+        <div class="col-lg-8">
+            <!-- 原始内容 -->
+            {% if log.original_content %}
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark me-2"></i>原始内容</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-3 rounded"><code>{{ log.original_content }}</code></pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 转换后内容 -->
+            {% if log.converted_content %}
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-arrow-left-right me-2"></i>转换后内容</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-3 rounded"><code>{{ log.converted_content }}</code></pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 响应内容 -->
+            {% if log.response_body %}
+            <div class="card mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-reply me-2"></i>企业微信响应</h5>
+                </div>
+                <div class="card-body">
+                    <pre class="bg-light p-3 rounded"><code>{{ log.response_body }}</code></pre>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- User Agent -->
+            {% if log.user_agent %}
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-browser-chrome me-2"></i>User Agent</h5>
+                </div>
+                <div class="card-body">
+                    <code class="text-muted">{{ log.user_agent }}</code>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

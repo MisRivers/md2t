@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}管理控制台 - md2t{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- 页面标题 -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0">
+            <i class="bi bi-speedometer2 me-2"></i>管理控制台
+        </h3>
+        <div>
+            <form method="POST" action="{{ url_for('admin_cleanup') }}" class="d-inline" 
+                  onsubmit="return confirm('确定要清理所有过期记录吗？');">
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash me-1"></i>清理过期数据
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card h-100">
+                <div class="card-body text-center">
+                    <div class="stat-number">{{ total_count }}</div>
+                    <div class="text-muted">总请求数</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card h-100">
+                <div class="card-body text-center">
+                    <div class="stat-number text-success">{{ today_count }}</div>
+                    <div class="text-muted">今日请求</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card h-100">
+                <div class="card-body text-center">
+                    <div class="stat-number text-info">{{ markdown_count }}</div>
+                    <div class="text-muted">Markdown转换</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card stat-card h-100">
+                <div class="card-body text-center">
+                    <div class="stat-number text-warning">{{ expired_count }}</div>
+                    <div class="text-muted">已过期记录</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- 最近请求 -->
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>最近请求</h5>
+                    <a href="{{ url_for('admin_logs') }}" class="btn btn-sm btn-outline-primary">
+                        查看全部
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for log in recent_logs %}
+                        <a href="{{ url_for('admin_log_detail', request_id=log.request_id) }}" 
+                           class="list-group-item list-group-item-action log-item {{ log.content_type }}">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <div>
+                                    <span class="badge {{ 'badge-md' if log.is_markdown else 'badge-text' }} me-2">
+                                        {{ 'MD' if log.is_markdown else 'TEXT' }}
+                                    </span>
+                                    <small class="text-muted">{{ log._mask_webhook_url()[:60] }}...</small>
+                                </div>
+                                <small class="text-muted">{{ log.created_at | localdate }}</small>
+                            </div>
+                            <div class="mt-1">
+                                {% if log.is_expired() %}
+                                    <span class="badge bg-secondary">已过期</span>
+                                {% else %}
+                                    <span class="badge bg-success">有效</span>
+                                {% endif %}
+                                <small class="text-muted ms-2">状态: {{ log.response_status or 'N/A' }}</small>
+                            </div>
+                        </a>
+                        {% else %}
+                        <div class="list-group-item text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                            暂无记录
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 统计图表 -->
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>7日趋势</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="trendChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 获取统计数据
+    fetch('{{ url_for("admin_api_stats") }}')
+        .then(response => response.json())
+        .then(data => {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            const labels = data.daily.slice(0, 7).reverse().map(d => d.date.slice(5));
+            const totalData = data.daily.slice(0, 7).reverse().map(d => d.total);
+            const mdData = data.daily.slice(0, 7).reverse().map(d => d.markdown);
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: '总请求',
+                        data: totalData,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }, {
+                        label: 'Markdown',
+                        data: mdData,
+                        borderColor: '#10b981',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Failed to load stats:', error);
+            document.getElementById('trendChart').parentElement.innerHTML = 
+                '<div class="text-center text-muted py-4">加载失败</div>';
+        });
+});
+</script>
+{% endblock %}

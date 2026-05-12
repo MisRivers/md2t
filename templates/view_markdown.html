@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - md2t{% endblock %}
+
+{% block navbar %}
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">
+            <i class="bi bi-arrow-left-right me-2"></i>md2t
+        </a>
+        <span class="navbar-text text-white opacity-75">
+            Markdown 预览
+        </span>
+        <div class="ms-auto">
+            <span class="badge bg-light text-dark">
+                <i class="bi bi-eye me-1"></i>{{ log.view_count }} 次查看
+            </span>
+        </div>
+    </div>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- 提示信息 -->
+            <div class="alert alert-info d-flex align-items-center mb-4">
+                <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+                <div>
+                    此 Markdown 内容由企业微信 Webhook 代理生成<br>
+                    <small class="opacity-75">有效期至 {{ log.expires_at | localtime }}</small>
+                </div>
+            </div>
+
+            <!-- Markdown 内容 -->
+            <div class="card">
+                <div class="card-body markdown-content p-4">
+                    {{ html_content | safe }}
+                </div>
+            </div>
+
+            <!-- 原始内容折叠 -->
+            <div class="mt-4">
+                <button class="btn btn-outline-secondary btn-sm" type="button" 
+                        data-bs-toggle="collapse" data-bs-target="#rawContent">
+                    <i class="bi bi-code me-1"></i>查看原始 Markdown
+                </button>
+                <div class="collapse mt-3" id="rawContent">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <small class="text-muted">原始内容</small>
+                        </div>
+                        <div class="card-body">
+                            <pre class="mb-0"><code>{{ log.original_content }}</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .markdown-content {
+        font-size: 1rem;
+        line-height: 1.8;
+        color: #1f2937;
+    }
+    
+    .markdown-content h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .markdown-content h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        padding-bottom: 0.3rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .markdown-content h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .markdown-content p {
+        margin-bottom: 1rem;
+    }
+    
+    .markdown-content pre {
+        background-color: #1e293b;
+        color: #e2e8f0;
+        padding: 1.25rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 1rem 0;
+    }
+    
+    .markdown-content pre code {
+        background-color: transparent;
+        padding: 0;
+        color: inherit;
+    }
+    
+    .markdown-content code {
+        background-color: #f3f4f6;
+        color: #dc2626;
+        padding: 0.2rem 0.4rem;
+        border-radius: 4px;
+        font-family: 'SF Mono', Monaco, monospace;
+        font-size: 0.9em;
+    }
+    
+    .markdown-content blockquote {
+        border-left: 4px solid var(--primary-color);
+        padding: 0.75rem 1rem;
+        margin: 1rem 0;
+        background-color: #f9fafb;
+        border-radius: 0 8px 8px 0;
+    }
+    
+    .markdown-content blockquote p {
+        margin-bottom: 0;
+        color: #4b5563;
+    }
+    
+    .markdown-content ul, .markdown-content ol {
+        margin: 1rem 0;
+        padding-left: 1.5rem;
+    }
+    
+    .markdown-content li {
+        margin: 0.5rem 0;
+    }
+    
+    .markdown-content table {
+        width: 100%;
+        margin: 1.5rem 0;
+        border-collapse: collapse;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .markdown-content th {
+        background-color: #f3f4f6;
+        font-weight: 600;
+        text-align: left;
+        padding: 0.75rem 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+    
+    .markdown-content td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .markdown-content tr:hover {
+        background-color: #f9fafb;
+    }
+    
+    .markdown-content hr {
+        border: none;
+        border-top: 2px solid #e5e7eb;
+        margin: 2rem 0;
+    }
+    
+    .markdown-content a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+    
+    .markdown-content a:hover {
+        text-decoration: underline;
+    }
+    
+    .markdown-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+</style>
+{% endblock %}
