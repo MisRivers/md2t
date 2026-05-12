@@ -83,7 +83,7 @@
                                 </tr>
                                 <tr>
                                     <td><strong>代理地址</strong></td>
-                                    <td><code>https://md2t.misrivers.cn/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx</code></td>
+                                    <td><code>{{ domain }}/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx</code></td>
                                 </tr>
                             </tbody>
                         </table>
@@ -94,7 +94,7 @@
                     
                     <div class="bg-light p-3 rounded">
                         <pre class="mb-0"><code class="language-bash">curl -X POST \
-  'https://md2t.misrivers.cn/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx' \
+  '{{ domain }}/https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxx' \
   -H 'Content-Type: application/json' \
   -d '{
     "msgtype": "text",

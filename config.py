@@ -28,6 +28,7 @@ class Config:
         ADMIN_PASSWORD_HASH = generate_password_hash('admin123')
     
     # 站点配置
+    DOMAIN = os.environ.get('DOMAIN', 'http://127.0.0.1:5000')
     BASE_URL = os.environ.get('BASE_URL', 'http://127.0.0.1:5000')
     
     # 上传限制
@@ -41,8 +42,10 @@ class Config:
     WECHAT_TEXTCARD_DESC_MAX = 512
     WECHAT_TEXT_CONTENT_MAX = 2048
     
-    # 数据保留天数
-    DATA_RETENTION_DAYS = 7
+    # 数据配置
+    DATA_RETENTION_DAYS = int(os.environ.get('DATA_RETENTION_DAYS', 7))
+    MAX_LINES = int(os.environ.get('MAX_LINES', 20))
+    MAX_TEXT_LENGTH = int(os.environ.get('MAX_TEXT_LENGTH', 4096))
 
 
 class DevelopmentConfig(Config):
